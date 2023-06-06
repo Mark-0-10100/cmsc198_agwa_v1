@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../inventory/inventory_options.dart';
+import 'dart:io';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_database/ui/firebase_animated_list.dart';
@@ -17,8 +18,14 @@ class homePage extends StatefulWidget {
 }
 
 class _homePageState extends State<homePage> {
-  Query dbRef = FirebaseDatabase.instance.ref();
-  DatabaseReference reference = FirebaseDatabase.instance.ref();
+  // Query dbRef = FirebaseDatabase.instance.ref();
+
+  // DatabaseReference reference = FirebaseDatabase.instance.ref();
+  final reference = FirebaseDatabase.instanceFor(
+          app: Firebase.app(),
+          databaseURL:
+              'https://agwa-trial-space-v1-default-rtdb.asia-southeast1.firebasedatabase.app/')
+      .ref('pHValue');
 
   Widget listItem({required Map phVal}) {
     return Container(
@@ -40,6 +47,16 @@ class _homePageState extends State<homePage> {
 
   @override
   Widget build(BuildContext context) {
+    // reference
+    //     .set(
+    //       'beltt',
+    //     )
+    //     .then((value) => print('belt is setting'));
+    // rtdb.onValue.listen((DatabaseEvent event) {
+    //   final data = event.snapshot.value;
+    //   print(data);
+    // });
+
     return Scaffold(
       body: Column(
         children: [
@@ -58,20 +75,21 @@ class _homePageState extends State<homePage> {
                 //   },
                 // ),
                 child: StreamBuilder(
-                  stream: dbRef.onValue,
-                  builder:
-                      (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+                  stream: reference.onValue,
+                  builder: (BuildContext context,
+                      AsyncSnapshot<DatabaseEvent> snapshot) {
                     if (snapshot.hasData) {
                       // Process the retrieved data
                       DataSnapshot data = snapshot.data!.snapshot;
-                      Map<dynamic, dynamic>? dataMap = data.value as Map?;
+
                       // Use the data to populate your UI
-                      return Text(dataMap!['phValue']);
+                      return Text(data.value.toString());
                     } else if (snapshot.hasError) {
                       return Text('Error: ${snapshot.error}');
                     } else {
                       return CircularProgressIndicator();
                     }
+                    // return Text('some text');
                   },
                 ),
                 //
@@ -83,7 +101,7 @@ class _homePageState extends State<homePage> {
             ]),
           ),
           SizedBox(height: 24),
-          Container(child: Text("Reminders"), width: 360),
+          Container(child: Text("Reminders ss"), width: 360),
           SizedBox(height: 24),
           Center(
             child: Stack(children: [
