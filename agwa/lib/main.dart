@@ -8,6 +8,10 @@ import 'package:provider/provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // For launch screen
+  // await Future.delayed(const Duration(seconds: 10));
+  // FlutterNativeSplash.remove();
   runApp(const MyApp());
 }
 

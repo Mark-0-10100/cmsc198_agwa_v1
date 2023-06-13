@@ -162,6 +162,7 @@ import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:agwa/agwa/inventory/ponddata.dart';
 import 'package:agwa/agwa/inventory/final_pond_dependencies/moodel_pondsData.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class homePage extends StatefulWidget {
   const homePage({super.key});
@@ -172,17 +173,59 @@ class homePage extends StatefulWidget {
 
 class _homePageState extends State<homePage> {
   final CollectionReference _ponds =
+  FirebaseFirestore.instance.collection("ponds");
+
+  final CollectionReference _reminders =
       FirebaseFirestore.instance.collection("activities");
 
-  // Query dbRef = FirebaseDatabase.instance.ref();
-
-  // DatabaseReference reference = FirebaseDatabase.instance.ref();
   final reference = FirebaseDatabase.instanceFor(
           app: Firebase.app(),
           databaseURL:
               'https://agwa-trial-space-v1-default-rtdb.asia-southeast1.firebasedatabase.app/')
       .ref('pHValue');
 
+  // Get pH threshold from the database
+  double threshold = 7.0; // Set your pH threshold
+  double minimumPH = 0.0;
+  double maximumPH = 0.0;
+  String pHStatus = "Critical";
+
+  @override
+  void initState(){
+    super.initState();
+    //Fetch the pH threshold data from Firestore
+    _fetchPHThreshold();
+  }
+
+  Future<void> _fetchPHThreshold() async {
+    try{
+      final snapshot = await _ponds.doc('yourDocumentID').get();
+      if (snapshot.exists) {
+        final data = snapshot.data();
+        // Update the state with the fetched values
+        setState(() {
+          minimumPH = data['minimumPH'];
+          maximumPH = data['maximumPH'];
+        });
+      }
+    } catch (error){
+        // Handle any errors that occur during fetching
+        print('Error fetching pH threshold: $error');
+      }
+  }
+
+  void showAlertDialog(BuildContext context){
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.warning,
+      headerAnimationLoop: false,
+      animType: AnimType.bottomSlide,
+      title: 'pH Level Alert',
+      desc: 'The pH level is critical! Fix your water immediately.',
+      btnOkOnPress: () {},
+      btnOkColor: Colors.cyan,
+    ).show();
+  }
   Widget listItem({required Map phVal}) {
     return Container(
         margin: const EdgeInsets.all(10),
@@ -203,16 +246,6 @@ class _homePageState extends State<homePage> {
 
   @override
   Widget build(BuildContext context) {
-    // reference
-    //     .set(
-    //       'beltt',
-    //     )
-    //     .then((value) => print('belt is setting'));
-    // rtdb.onValue.listen((DatabaseEvent event) {
-    //   final data = event.snapshot.value;
-    //   print(data);
-    // });
-
     return Scaffold(
       body: Column(
         children: [
@@ -220,63 +253,94 @@ class _homePageState extends State<homePage> {
           Center(
             child: Stack(children: [
               Container(
-                // child: FirebaseAnimatedList(
-                //   query: dbRef,
-                //   itemBuilder: (BuildContext context, DataSnapshot snapshot,
-                //       Animation<double> animation, int index) {
-                //     Map phVal = snapshot.value as Map;
-                //     phVal['key'] = snapshot.key;
-                //     //return listItem(phVal: phVal);
-                //     return Text("Current pH Level: 7");
-                //   },
-                // ),
-                child: StreamBuilder(
-                  stream: reference.onValue,
-                  builder: (BuildContext context,
-                      AsyncSnapshot<DatabaseEvent> snapshot) {
-                    if (snapshot.hasData) {
-                      // Process the retrieved data
-                      DataSnapshot data = snapshot.data!.snapshot;
-
-                      // Use the data to populate your UI
-                      return Text(
-                          "Current pH Level: " + (data.value.toString()),
-                          textAlign: TextAlign.center);
-                    } else if (snapshot.hasError) {
-                      return Text('Error: ${snapshot.error}');
-                    } else {
-                      return CircularProgressIndicator();
-                    }
-                    // return Text('some text');
-                  },
-                ),
-                //
-
-                color: Colors.cyan,
                 width: 320,
-                padding: EdgeInsets.symmetric(vertical: 100.0),
-              ),
+                child: Card(
+                  color: Colors.cyan,
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 100.0),
+                    child: StreamBuilder(
+                      stream: reference.onValue,
+                      builder: (BuildContext context,
+                          AsyncSnapshot<DatabaseEvent> snapshot) {
+                        if (snapshot.hasData) {
+                          // Process the retrieved data
+                          DataSnapshot data = snapshot.data!.snapshot;
+
+                          // Retrieve the pH value from the database
+                          double pHValue = double.parse(data.value.toString());
+
+                          // Compare the pH value with the threshold
+                          if (pHValue > threshold){
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              showAlertDialog(context);
+                            });
+                          }
+                          // Use the data to populate your UI
+                          return Column(
+                              children: [
+                                Text(
+                                  // "Current pH Level: " + (data.value.toString()),
+                                  // textAlign: TextAlign.center);
+                                    "Current pH Level:  $pHValue",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.normal,
+                                      color: Colors.black,
+                                    )
+                                ),
+                                Text(
+                                  "Status: $pHStatus",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.normal,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ]);
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else {
+                          return CircularProgressIndicator();
+                        }
+                        // return Text('some text');
+                      },
+                    ),
+                  ),
+                ),
+              )
+
             ]),
           ),
           SizedBox(height: 24),
-          Container(child: Text("Reminders"), width: 360),
-          SizedBox(height: 24),
-          Center(
+
+          Container(
+              width: 360,
+              padding: EdgeInsets.fromLTRB(16, 0, 0, 8), // Adjust the bottom padding value
+              child: Text(
+                  "Reminders",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+              ),
+          ),
+          // SizedBox(height: 24),
+          Expanded(
             child: Stack(children: [
-              // Container(
-              //   child: Text(
-              //     "Reminders...",
-              //     textAlign: TextAlign.center,
-              //   ),
-              //   color: Colors.cyan,
-              //   width: 320,
-              //   padding: EdgeInsets.symmetric(vertical: 150.0),
-              // ),
               SingleChildScrollView(
                 child: Container(
-                  height: 300,
+                  height: 250,
+                  padding: EdgeInsets.fromLTRB(15, 0, 15, 8), // Adjust the bottom padding value
+
                   child: StreamBuilder(
-                    stream: _ponds.snapshots(),
+                    stream: _reminders.snapshots(),
                     builder: (context, AsyncSnapshot snapshots) {
                       if (snapshots.connectionState ==
                           ConnectionState.waiting) {
@@ -285,35 +349,63 @@ class _homePageState extends State<homePage> {
                         );
                       }
                       if (snapshots.hasData) {
+                        final tasks = snapshots.data!.docs.toList();
+                        final notDoneTasks = tasks.where((task) => task['Status'] == false).toList();
+
+                        // Sort the tasks based on the nearest deadline
+                        notDoneTasks.sort((a,b){
+                          final DateTime deadlineA = a['Deadline'].toDate();
+                          final DateTime deadlineB = b['Deadline'].toDate();
+                          return deadlineA.compareTo(deadlineB);
+                        });
+
                         return ListView.builder(
-                          itemCount: snapshots.data!.docs.length,
-                          itemBuilder: (context, index) {
-                            final DocumentSnapshot records =
-                                snapshots.data!.docs[index];
-                            return Slidable(
-                              //startActionPane:
-                              //     ActionPane(motion: StretchMotion(), children: [
-                              //   SlidableAction(
-                              //     onPressed: (context) => _update(records),
-                              //     icon: Icons.edit,
-                              //     backgroundColor: Colors.blue,
-                              //   ),
-                              //   SlidableAction(
-                              //     onPressed: (context) => _delete(records.id),
-                              //     icon: Icons.delete,
-                              //     backgroundColor: Colors.blue,
-                              //   ),
-                              // ]),
-                              child: ListTile(
-                                title: Text("Task Description: " +
-                                    records["Task Description"]),
-                                subtitle: Text("Deadline: " +
-                                    records["Deadline"].toDate().toString() +
-                                    "\nStatus: " +
-                                    records["Status"].toString()),
-                              ),
-                            );
-                          },
+                              // itemCount: snapshots.data!.docs.length,
+                              itemCount: notDoneTasks.length,
+                              itemBuilder: (context, index) {
+                                // final DocumentSnapshot records =
+                                //     snapshots.data!.docs[index];
+                                final DocumentSnapshot task = notDoneTasks[index];
+                                // bool isTaskDone = task["Status"];
+
+                                return Slidable(
+                                  child: Card(
+                                    child: ListTile(
+                                      leading: Checkbox(
+                                        // value: isTaskDone,
+                                        value: false,
+                                        onChanged: (value){
+                                          if (value == true){
+                                            AwesomeDialog(
+                                              context: context,
+                                              dialogType: DialogType.question,
+                                              animType: AnimType.bottomSlide,
+                                              title: 'Confirmation',
+                                              desc: 'Are you sure you want to mark this as done?',
+                                              btnCancelOnPress: (){},
+                                              btnOkOnPress: (){
+                                                // Update the task status
+                                                _reminders.doc(task.id).update({'Status':value});
+                                                Fluttertoast.showToast(msg: 'Activity marked as done');
+                                              },
+                                              btnOkColor: Colors.cyan,
+                                            ).show();
+                                          } else {
+                                            // Update the status to not done
+                                            _reminders.doc(task.id).update({'Status':false});
+                                          }
+
+                                        },
+                                      ),
+                                      title: Text(
+                                          task["Task Description"]),
+                                      subtitle: Text("Deadline: " +
+                                          task["Deadline"].toDate().toString()),
+                                    ),
+                                  ),
+                                );
+                              },
+                        //     ),
                         );
                       }
                       return Center(
