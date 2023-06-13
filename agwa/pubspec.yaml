@@ -56,6 +56,9 @@ dev_dependencies:
   firebase_core: ^2.13.0
   cupertino_icons: ^1.0.2
   date_field: ^3.0.2
+  google_fonts: ^3.0.0
+  awesome_dialog: ^3.1.0
+  
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -95,6 +98,9 @@ flutter:
   #       - asset: fonts/TrajanPro.ttf
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
-  #
+  
+  
+
+
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages

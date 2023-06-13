@@ -16,9 +16,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final AuthService _auth = AuthService();
 
-  int currentIndex = 1;
+  int currentIndex = 0;
   final screens = [
-    addSensorPage(),
+    //addSensorPage(),
     homePage(),
     InventoryOptions(),
   ];
@@ -49,7 +49,7 @@ class _HomePageState extends State<HomePage> {
         currentIndex: currentIndex,
         onTap: (index) => setState(() => currentIndex = index),
         items: const [
-          BottomNavigationBarItem(label: "Sensor", icon: Icon(Icons.sensors)),
+          //BottomNavigationBarItem(label: "Sensor", icon: Icon(Icons.sensors)),
           BottomNavigationBarItem(
             label: "Home",
             icon: Icon(Icons.home),
