@@ -69,7 +69,12 @@ dev_dependencies:
   date_field: ^3.0.2
   google_fonts: ^4.0.4
   awesome_dialog: ^3.1.0
-  
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo_agwa.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

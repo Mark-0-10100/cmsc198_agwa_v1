@@ -25,6 +25,7 @@ import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:agwa/agwa/inventory/ponddata.dart';
 import 'package:agwa/agwa/inventory/final_pond_dependencies/moodel_pondsData.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class ActivitiesPage extends StatefulWidget {
   const ActivitiesPage({super.key});
@@ -42,7 +43,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   final taskStatus_controller = TextEditingController();
   //For transaction page -------------------------------------------------------
 
-  final CollectionReference _ponds =
+  final CollectionReference _activities =
       FirebaseFirestore.instance.collection("activities");
 
   //For transaction page -------------------------------------------------------
@@ -217,7 +218,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
                     //     target_HarvestDateController.text;
 
                     if (taskStatus_controller_temp != null) {
-                      await _ponds.doc(documentSnapshot!.id).update({
+                      await _activities.doc(documentSnapshot!.id).update({
                         "Task Description": transactionDescription_temp,
                         //"Deadline": initialQuantity_temp,
                         "Status": taskStatus_controller_temp,
@@ -239,7 +240,7 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
   }
 
   Future<void> _delete(String transactionData_id) async {
-    await _ponds.doc(transactionData_id).delete();
+    await _activities.doc(transactionData_id).delete();
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('You have successfully deleted a Pond Data')));
@@ -247,9 +248,8 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final CollectionReference _ponds =
-        FirebaseFirestore.instance.collection("activities");
-
+    // final CollectionReference _activities =
+    //     FirebaseFirestore.instance.collection("activities");
     return Scaffold(
         appBar: AppBar(
           leading: IconButton(
@@ -284,54 +284,100 @@ class _ActivitiesPageState extends State<ActivitiesPage> {
                 SizedBox(width: 10),
               ],
             ),
-            Container(
-              height: 600,
-              child: StreamBuilder(
-                stream: _ponds.snapshots(),
-                builder: (context, AsyncSnapshot snapshots) {
-                  if (snapshots.connectionState == ConnectionState.waiting) {
-                    return Center(
-                      child: CircularProgressIndicator(color: Colors.green),
-                    );
-                  }
-                  if (snapshots.hasData) {
-                    return ListView.builder(
-                      itemCount: snapshots.data!.docs.length,
-                      itemBuilder: (context, index) {
-                        final DocumentSnapshot records =
-                            snapshots.data!.docs[index];
-                        return Slidable(
-                          startActionPane:
-                              ActionPane(motion: StretchMotion(), children: [
-                            SlidableAction(
-                              onPressed: (context) => _update(records),
-                              icon: Icons.edit,
-                              backgroundColor: Colors.blue,
-                            ),
-                            SlidableAction(
-                              onPressed: (context) => _delete(records.id),
-                              icon: Icons.delete,
-                              backgroundColor: Colors.blue,
-                            ),
-                          ]),
-                          child: ListTile(
-                            title: Text("Task Description: " +
-                                records["Task Description"]),
-                            subtitle: Text("Deadline: " +
-                                records["Deadline"].toDate().toString() +
-                                "\nStatus: " +
-                                records["Status"].toString()),
-                          ),
+            Expanded(
+              child: Stack(children: [
+                SingleChildScrollView(
+                  child: Container(
+                    height: 600,
+                    child: StreamBuilder(
+                      stream: _activities.snapshots(),
+                      builder: (context, AsyncSnapshot snapshots) {
+                        if (snapshots.connectionState == ConnectionState.waiting) {
+                          return Center(
+                            child: CircularProgressIndicator(color: Colors.green),
+                          );
+                        }
+                        if (snapshots.hasData) {
+                          final tasks = snapshots.data!.docs.toList();
+                          final notDoneTasks = tasks.where((task) => task['Status'] == false).toList();
+
+                          // Sort the tasks based on the nearest deadline
+                          notDoneTasks.sort((a,b){
+                            final DateTime deadlineA = a['Deadline'].toDate();
+                            final DateTime deadlineB = b['Deadline'].toDate();
+                            return deadlineA.compareTo(deadlineB);
+                          });
+
+                          return ListView.builder(
+                            // itemCount: snapshots.data!.docs.length,
+                            itemCount: notDoneTasks.length,
+                            itemBuilder: (context, index) {
+                              // final DocumentSnapshot records =
+                              // snapshots.data!.docs[index];
+                              final DocumentSnapshot task = notDoneTasks[index];
+
+                              return Slidable(
+                                startActionPane:
+                                ActionPane(motion: StretchMotion(), children: [
+                                  SlidableAction(
+                                    onPressed: (context) => _update(task),
+                                    icon: Icons.edit,
+                                    backgroundColor: Colors.blue,
+                                  ),
+                                  SlidableAction(
+                                    onPressed: (context) => _delete(task.id),
+                                    icon: Icons.delete,
+                                    backgroundColor: Colors.blue,
+                                  ),
+                                ]),
+                                child: Card(
+                                  child: ListTile(
+                                      leading: Checkbox(
+                                        value: false,
+                                        onChanged: (value){
+                                          if (value == true){
+                                            AwesomeDialog(
+                                              context: context,
+                                              dialogType: DialogType.question,
+                                              animType: AnimType.bottomSlide,
+                                              title: 'Confirmation',
+                                              desc: 'Are you sure you want to mark this as done?',
+                                              btnCancelOnPress: (){},
+                                              btnOkOnPress: (){
+                                                // Update the task status
+                                                _activities.doc(task.id).update({'Status':value});
+                                                Fluttertoast.showToast(msg: 'Activity marked as done');
+                                              },
+                                              btnOkColor: Colors.cyan,
+                                            ).show();
+                                          } else {
+                                            // Update the status to not done
+                                            _activities.doc(task.id).update({'Status':false});
+                                          }
+
+                                        },
+                                      ),
+                                      title: Text("Task Description: " +
+                                  task["Task Description"]),
+                                  subtitle: Text("Deadline: " +
+                                      task["Deadline"].toDate().toString()),
+                                ),
+                              ),
+
+                              );
+                            },
+                          );
+                        }
+                        return Center(
+                          child: CircularProgressIndicator(color: Colors.red),
                         );
                       },
-                    );
-                  }
-                  return Center(
-                    child: CircularProgressIndicator(color: Colors.red),
-                  );
-                },
-              ),
-            ),
+                    ),
+                  ),
+
+                )
+              ])
+            )
           ]),
         ));
   }
