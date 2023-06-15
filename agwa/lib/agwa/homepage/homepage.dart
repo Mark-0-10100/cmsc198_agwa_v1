@@ -225,13 +225,23 @@ class _homePageState extends State<homePage> {
     return Column(
         children: [
           Text(
-              "Current pH Level:  $pHValue",
+              "Current pH Level:",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
               ),
+          ),
+          SizedBox(height: 5),
+          Text(
+            "$pHValue",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
           Text(
             "Status: $pHStatus",
@@ -265,8 +275,8 @@ class _homePageState extends State<homePage> {
           'Connect to Sensor to see the pH readings',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontSize: 17,
+            fontWeight: FontWeight.normal,
             color: Colors.black,
           ),
         ),

@@ -26,9 +26,9 @@ class _RegisterState extends State<Register> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 200, 255, 236),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 0, 63, 77),
+        backgroundColor: Colors.white,
         elevation: 0.0,
         title: Text('Register to Agwa'),
         actions: <Widget>[
