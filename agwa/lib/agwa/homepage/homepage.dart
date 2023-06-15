@@ -172,8 +172,8 @@ class homePage extends StatefulWidget {
 }
 
 class _homePageState extends State<homePage> {
-  final CollectionReference _ponds =
-  FirebaseFirestore.instance.collection("ponds");
+  // final CollectionReference _ponds =
+  // FirebaseFirestore.instance.collection("ponds");
 
   final CollectionReference _reminders =
       FirebaseFirestore.instance.collection("activities");
@@ -188,9 +188,17 @@ class _homePageState extends State<homePage> {
   double threshold = 7.0; // Set your pH threshold
   double minimumPH = 0.0;
   double maximumPH = 0.0;
-  String pHStatus = "Critical";
+  String pHStatus = "";
+
 
   bool isSensorConnected = false; // Track the sensor connection status
+  bool toShowDialog = true;
+
+  void showDialog(){
+    setState((){
+      toShowDialog = false;
+    });
+  }
 
   void connectToSensor(){
     setState((){
@@ -201,6 +209,7 @@ class _homePageState extends State<homePage> {
   void disconnectFromSensor(){
     setState(() {
       isSensorConnected = false;
+      toShowDialog = true;
     });
   }
   void showAlertDialog(BuildContext context){
@@ -216,12 +225,36 @@ class _homePageState extends State<homePage> {
     ).show();
   }
 
-  Widget buildConnectedUI(BuildContext context, double pHValue){
-    if (pHValue > threshold){
+  Widget buildConnectedUI(BuildContext context, double pHValue, double minimumPH, double maximumPH){
+    // if (pHValue > threshold){
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     showAlertDialog(context);
+    //   });
+    // }
+    // Compare the pH value with the retrieved threshold values
+    if (pHValue < minimumPH && toShowDialog) {
+      pHStatus = "Below Normal pH Range";
+      toShowDialog = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showAlertDialog(context);
       });
+    } else if (pHValue > maximumPH && toShowDialog) {
+      pHStatus = "Above Normal pH Range";
+      toShowDialog = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showAlertDialog(context);
+      });
+    } else {
+      if (pHValue < minimumPH){
+        pHStatus = "Below Normal pH Range";
+      }else if (pHValue > maximumPH){
+        pHStatus = "Above Normal pH Range";
+      }else{
+        pHStatus = "Normal";
+      }
     }
+    //Retrieve the minimum and maximum pH values from Firestore
+
     return Column(
         children: [
           Text(
@@ -343,14 +376,29 @@ class _homePageState extends State<homePage> {
                           // Retrieve the pH value from the database
                           double pHValue = double.parse(data.value.toString());
 
-                          // Compare the pH value with the threshold
-                          if (pHValue > threshold){
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              showAlertDialog(context);
-                            });
-                          }
+                          // // Compare the pH value with the threshold
+                          // if (pHValue > threshold){
+                          //   WidgetsBinding.instance.addPostFrameCallback((_) {
+                          //     showAlertDialog(context);
+                          //   });
+                          // }
+                          FirebaseFirestore.instance
+                              .collection("pond-species_inventory")  // Replace with your actual collection name
+                              .doc("HGzRDo3Eoga441QQuIdK")  // Replace with your actual document ID
+                              .get()
+                              .then((DocumentSnapshot documentSnapshot) {
+                            if (documentSnapshot.exists) {
+                              // Retrieve the minimum and maximum pH values from the document snapshot
+                              minimumPH = documentSnapshot.get("Minimum pH Level").toDouble();
+                              maximumPH = documentSnapshot.get("Maximum pH Level").toDouble();
+                              // double pHValue = double.parse(data.value.toString());
+                              // setState(() {
+                              //   // Update the UI with the retrieved values
+                              // });
+                            }
+                          });
                           // Use the data to populate your UI
-                          return buildConnectedUI(context, pHValue);
+                          return buildConnectedUI(context, pHValue, minimumPH, maximumPH);
                         } else if (snapshot.hasError) {
                           return Text('Error: ${snapshot.error}');
                         } else {
@@ -467,22 +515,5 @@ class _homePageState extends State<homePage> {
         ],
       ),
     );
-    // bottomNavigationBar: BottomNavigationBar(
-    //   currentIndex: currentIndex,
-    //   onTap: (index) => setState(() => currentIndex = index),
-    //   items: const [
-    //     BottomNavigationBarItem(
-    //         label: "Sensor",
-    //         icon: Icon(Icons.signal_cellular_0_bar_outlined)),
-    //     BottomNavigationBarItem(
-    //       label: "Home",
-    //       icon: Icon(Icons.home),
-    //     ),
-    //     BottomNavigationBarItem(
-    //       label: 'Settings',
-    //       icon: Icon(Icons.settings),
-    //     )
-    //   ],
-    // ));
   }
 }
