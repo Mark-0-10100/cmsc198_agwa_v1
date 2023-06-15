@@ -190,30 +190,19 @@ class _homePageState extends State<homePage> {
   double maximumPH = 0.0;
   String pHStatus = "Critical";
 
-  @override
-  void initState(){
-    super.initState();
-    //Fetch the pH threshold data from Firestore
-    _fetchPHThreshold();
+  bool isSensorConnected = false; // Track the sensor connection status
+
+  void connectToSensor(){
+    setState((){
+      isSensorConnected = true;
+    });
   }
 
-  Future<void> _fetchPHThreshold() async {
-    try{
-      final snapshot = await _ponds.doc('yourDocumentID').get();
-      if (snapshot.exists) {
-        final data = snapshot.data();
-        // Update the state with the fetched values
-        setState(() {
-          minimumPH = data['minimumPH'];
-          maximumPH = data['maximumPH'];
-        });
-      }
-    } catch (error){
-        // Handle any errors that occur during fetching
-        print('Error fetching pH threshold: $error');
-      }
+  void disconnectFromSensor(){
+    setState(() {
+      isSensorConnected = false;
+    });
   }
-
   void showAlertDialog(BuildContext context){
     AwesomeDialog(
       context: context,
@@ -225,6 +214,77 @@ class _homePageState extends State<homePage> {
       btnOkOnPress: () {},
       btnOkColor: Colors.cyan,
     ).show();
+  }
+
+  Widget buildConnectedUI(BuildContext context, double pHValue){
+    if (pHValue > threshold){
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showAlertDialog(context);
+      });
+    }
+    return Column(
+        children: [
+          Text(
+              "Current pH Level:  $pHValue",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+          ),
+          Text(
+            "Status: $pHStatus",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.normal,
+              color: Colors.black,
+            ),
+          ),
+          SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: disconnectFromSensor,
+            child: Text('Disconnect Sensor'),
+            style: ElevatedButton.styleFrom(
+              primary: Colors.blue,
+              onPrimary: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: EdgeInsets.all(16),
+            ),
+          )
+        ],
+    );
+  }
+  Widget buildDisconnectedUI(BuildContext context){
+    return Column(
+      children: [
+        Text(
+          'Connect to Sensor to see the pH readings',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: connectToSensor,
+          child: Text('Connect Sensor'),
+          style: ElevatedButton.styleFrom(
+            primary: Colors.blue,
+            onPrimary: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: EdgeInsets.all(16),
+          ),
+        ),
+      ],
+    );
   }
   Widget listItem({required Map phVal}) {
     return Container(
@@ -261,8 +321,8 @@ class _homePageState extends State<homePage> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 100.0),
-                    child: StreamBuilder(
+                    padding: EdgeInsets.symmetric(vertical: 50.0),
+                    child: isSensorConnected ? StreamBuilder(
                       stream: reference.onValue,
                       builder: (BuildContext context,
                           AsyncSnapshot<DatabaseEvent> snapshot) {
@@ -280,29 +340,7 @@ class _homePageState extends State<homePage> {
                             });
                           }
                           // Use the data to populate your UI
-                          return Column(
-                              children: [
-                                Text(
-                                  // "Current pH Level: " + (data.value.toString()),
-                                  // textAlign: TextAlign.center);
-                                    "Current pH Level:  $pHValue",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.normal,
-                                      color: Colors.black,
-                                    )
-                                ),
-                                Text(
-                                  "Status: $pHStatus",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.normal,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ]);
+                          return buildConnectedUI(context, pHValue);
                         } else if (snapshot.hasError) {
                           return Text('Error: ${snapshot.error}');
                         } else {
@@ -310,11 +348,10 @@ class _homePageState extends State<homePage> {
                         }
                         // return Text('some text');
                       },
-                    ),
+                    ) : buildDisconnectedUI(context),
                   ),
                 ),
-              )
-
+              ),
             ]),
           ),
           SizedBox(height: 24),
@@ -345,7 +382,7 @@ class _homePageState extends State<homePage> {
                       if (snapshots.connectionState ==
                           ConnectionState.waiting) {
                         return Center(
-                          child: CircularProgressIndicator(color: Colors.green),
+                          child: CircularProgressIndicator(color: Colors.cyan),
                         );
                       }
                       if (snapshots.hasData) {
@@ -409,7 +446,7 @@ class _homePageState extends State<homePage> {
                         );
                       }
                       return Center(
-                        child: CircularProgressIndicator(color: Colors.red),
+                        child: CircularProgressIndicator(color: Colors.cyan),
                       );
                     },
                   ),

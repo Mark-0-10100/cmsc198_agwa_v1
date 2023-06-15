@@ -18,19 +18,31 @@ class _InventoryOptionsState extends State<InventoryOptions> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Inventory System', style: TextStyle(color: Colors.black)),
+        title: Text('Inventory', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: Center(
           child: Column(
         children: [
-          ElevatedButton(
+          ElevatedButton.icon(
               onPressed: () {
                 Navigator.of(context).push(MaterialPageRoute(
                     builder: (BuildContext context) => PondsPage()));
               },
-              child: Text("Ponds")),
+              icon: Icon(Icons.image),
+              label: Text("Ponds"),
+              style: ElevatedButton.styleFrom(
+                // Customize the button's appearance
+                primary: Colors.blue,
+                onPrimary: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: EdgeInsets.all(16),
+              ),
+          ),
+              // child: Text("Ponds")),
           ElevatedButton(
               onPressed: () {
                 Navigator.of(context).push(MaterialPageRoute(
